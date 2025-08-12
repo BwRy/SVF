@@ -33,6 +33,7 @@
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
 #include "WPA/Andersen.h"
+#include "SVF-LLVM/LeopardMetrics.h"
 
 using namespace llvm;
 using namespace std;
@@ -203,6 +204,53 @@ int main(int argc, char ** argv)
         {
             const ICFGNode* node = it.second;
             traverseOnICFG(icfg, node);
+        }
+    }
+
+    // Leopard metrics demo flag
+    static llvm::cl::opt<bool> LeopardFlag("leopard", llvm::cl::desc("Run Leopard metrics analysis"), llvm::cl::init(false));
+    if (LeopardFlag) {
+        outs() << "Running Leopard Complexity Analysis...\n";
+        auto cres = SVF::getLeopardC(nullptr, svfg);
+        outs() << "Top 10 Functions by Cyclomatic Complexity:\n";
+        for (size_t i = 0; i < std::min<size_t>(10, cres.functionsSorted.size()); ++i) {
+            const auto& f = cres.functionsSorted[i];
+            outs() << "  " << f.id.name << " : cyclomatic=" << f.cyclomatic
+                   << ", maxLoopNesting=" << f.maxLoopNesting
+                   << ", loopCount=" << f.loopCount
+                   << ", nestedLoopCount=" << f.nestedLoopCount << "\n";
+        }
+        outs() << "Top 10 BasicBlocks by Loop Depth:\n";
+        for (size_t i = 0; i < std::min<size_t>(10, cres.basicBlocksSorted.size()); ++i) {
+            const auto& bb = cres.basicBlocksSorted[i];
+            outs() << "  " << bb.id.functionName << " BB#" << bb.id.indexInFunction
+                   << " : loopDepth=" << bb.loopDepth << ", outDegree=" << bb.outDegree
+                   << ", isLoopHeader=" << bb.isLoopHeader << "\n";
+        }
+        outs() << "Running Leopard Vulnerability Analysis...\n";
+        auto vres = SVF::getLeopardV(nullptr, svfg);
+        outs() << "Top 10 Functions by Variables Passed to Callees:\n";
+        for (size_t i = 0; i < std::min<size_t>(10, vres.functionsDependencySorted.size()); ++i) {
+            const auto& f = vres.functionsDependencySorted[i];
+            outs() << "  " << f.id.name << " : variablesPassedToCallees=" << f.dependency.variablesPassedToCallees
+                   << ", paramCount=" << f.dependency.paramCount << "\n";
+        }
+        outs() << "Top 10 Functions by Pointer Arithmetic Ops:\n";
+        for (size_t i = 0; i < std::min<size_t>(10, vres.functionsPointersSorted.size()); ++i) {
+            const auto& f = vres.functionsPointersSorted[i];
+            outs() << "  " << f.id.name << " : ptrArithOps=" << f.pointers.ptrArithOps
+                   << ", maxOpsPerVar=" << f.pointers.maxOpsPerVar
+                   << ", variablesInvolved=" << f.pointers.variablesInvolved << "\n";
+        }
+        outs() << "Top 10 Functions by Control Complexity:\n";
+        for (size_t i = 0; i < std::min<size_t>(10, vres.functionsControlSorted.size()); ++i) {
+            const auto& f = vres.functionsControlSorted[i];
+            outs() << "  " << f.id.name
+                   << " : maxNestingLevel=" << f.control.maxNestingLevel
+                   << ", ifWithoutElseCount=" << f.control.ifWithoutElseCount
+                   << ", maxControlDependentChain=" << f.control.maxControlDependentChain
+                   << ", maxDataDependentChain=" << f.control.maxDataDependentChain
+                   << ", variablesInConditions=" << f.control.variablesInConditions << "\n";
         }
     }
 

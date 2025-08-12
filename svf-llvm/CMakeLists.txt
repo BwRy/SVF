@@ -130,6 +130,7 @@ target_link_libraries(SvfLLVM PUBLIC SvfFlags SvfCore ${LLVM_LIBRARIES})
 # Gather & set all of the core library's source files by globbing all .h and .cpp files (recursively)
 file(GLOB_RECURSE SVF_LLVM_HEADERS ${CMAKE_CURRENT_LIST_DIR}/include/*.h)
 file(GLOB_RECURSE SVF_LLVM_SOURCES ${CMAKE_CURRENT_LIST_DIR}/lib/*.cpp)
+list(APPEND SVF_LLVM_SOURCES ${CMAKE_CURRENT_LIST_DIR}/lib/LeopardMetrics.cpp)
 target_sources(
   SvfLLVM
   PUBLIC FILE_SET HEADERS
@@ -153,6 +154,12 @@ install(
   ARCHIVE DESTINATION ${SVF_INSTALL_LIBDIR}
           FILE_SET HEADERS
           DESTINATION ${SVF_INSTALL_INCLUDEDIR}
+)
+
+# Install LeopardMetrics.h header
+install(
+  FILES ${CMAKE_CURRENT_LIST_DIR}/include/SVF-LLVM/LeopardMetrics.h
+  DESTINATION ${SVF_INSTALL_INCLUDEDIR}/SVF-LLVM
 )
 
 # =================================================================================
